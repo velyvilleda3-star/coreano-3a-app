@@ -7,9 +7,9 @@ from pypdf import PdfReader
 
 st.set_page_config(page_title="Coreano 3A - App de Estudio", page_icon="🇰🇷", layout="centered")
 
-# --- EXTRAER VOCABULARIO DE LAS PÁGINAS 52 A 55 DEL PDF ---
+# --- EXTRACCIÓN INTELIGENTE DEL ÍNDICE (Pág. 52 a 55) ---
 @st.cache_data
-def extraer_todo_vocabulario_pdf():
+def extraer_vocabulario_indice():
     archivo_pdf = "Libro Coreno 3A.pdf"
     lista_vocab = []
     
@@ -18,54 +18,56 @@ def extraer_todo_vocabulario_pdf():
             lector = PdfReader(archivo_pdf)
             total_pags = len(lector.pages)
             
-            # Páginas 52 a 55 (índices 51 a 54 en Python)
-            inicio_pag = 51
-            fin_pag = min(55, total_pags)
-            
-            for i in range(inicio_pag, fin_pag):
+            # Páginas 52 a 55 (índices 51 a 54)
+            for i in range(51, min(55, total_pags)):
                 texto = lector.pages[i].extract_text()
                 if texto:
                     lineas = texto.split("\n")
                     for linea in lineas:
-                        # Filtrar líneas con texto en coreano (Hangul)
-                        coreano = "".join(re.findall(r'[\uac00-\ud7a3]+', linea))
-                        if len(coreano) > 1:
-                            lista_vocab.append({
-                                "coreano": linea.strip(),
-                                "espanol": f"Vocabulario Pág. {i+1}",
-                                "leccion": f"Página {i+1}"
-                            })
+                        linea_limpia = linea.strip()
+                        # Buscar líneas que contengan texto en coreano (Hangul)
+                        if any('\uac00' <= char <= '\ud7a3' for char in linea_limpia):
+                            # Separar el coreano de la traducción si es posible
+                            match = re.search(r'([\uac00-\ud7a3\s\d\./~()-]+)', linea_limpia)
+                            if match:
+                                coreano_parte = match.group(0).strip()
+                                if len(coreano_parte) > 1:
+                                    # El resto de la línea o la misma línea sirve como referencia
+                                    lista_vocab.append({
+                                        "coreano": coreano_parte,
+                                        "espanol": f"Índice del libro (Ref: {linea_limpia})",
+                                        "leccion": f"Página {i+1}"
+                                    })
         except Exception:
             pass
 
-    # Vocabulario de respaldo por si el PDF requiere lectura directa de texto específico
-    vocab_respaldo = [
-        {"coreano": "청소를 하다", "espanol": "Hacer la limpieza", "leccion": "Pág. 52-55"},
-        {"coreano": "주방", "espanol": "Cocina", "leccion": "Pág. 52-55"},
-        {"coreano": "거실", "espanol": "Sala de estar", "leccion": "Pág. 52-55"},
-        {"coreano": "설거지를 하다", "espanol": "Lavar los platos", "leccion": "Pág. 52-55"},
-        {"coreano": "빨래를 하다", "espanol": "Lavar la ropa", "leccion": "Pág. 52-55"},
-    ]
+    # Respaldo completo por seguridad
+    if len(lista_vocab) < 5:
+        lista_vocab = [
+            {"coreano": "교통이 편리하다", "espanol": "Transportation is convenient (Pág. 8)", "leccion": "Página 52"},
+            {"coreano": "구입하다", "espanol": "Purchase, buy (Pág. 10)", "leccion": "Página 52"},
+            {"coreano": "국경일", "espanol": "National holiday (Pág. 16)", "leccion": "Página 52"},
+            {"coreano": "근로자의 날", "espanol": "Labor Day (Pág. 14)", "leccion": "Página 52"},
+            {"coreano": "기념일을 맞이하다", "espanol": "Commemorate the anniversary (Pág. 14)", "leccion": "Página 52"},
+            {"coreano": "기념품을 받다", "espanol": "Get a gift (Pág. 17)", "leccion": "Página 52"},
+        ]
 
-    return lista_vocab if len(lista_vocab) > 3 else vocab_respaldo
+    return lista_vocab
 
 # --- CARGAR GRAMÁTICA (Word y Pág. 56+ PDF) ---
 @st.cache_data
 def cargar_gramatica_word_y_pdf():
     gramatica_dict = {}
     
-    # Archivos Word (.docx)
     for archivo in os.listdir("."):
         if archivo.endswith(".docx"):
             try:
                 doc = Document(archivo)
                 texto = "\n".join([p.text for p in doc.paragraphs if p.text.strip() != ""])
-                nombre = f"Word: {archivo.replace('.docx', '')}"
-                gramatica_dict[nombre] = texto
+                gramatica_dict[f"Word: {archivo.replace('.docx', '')}"] = texto
             except Exception:
                 pass
                 
-    # Libro PDF (A partir de la página 56 para gramática)
     archivo_pdf = "Libro Coreno 3A.pdf"
     if os.path.exists(archivo_pdf):
         try:
@@ -79,7 +81,7 @@ def cargar_gramatica_word_y_pdf():
             
     return gramatica_dict
 
-BANCO_VOCABULARIO = extraer_todo_vocabulario_pdf()
+BANCO_VOCABULARIO = extraer_vocabulario_indice()
 
 BANCO_GRAMATICA_AVANZADO = [
     {
@@ -105,10 +107,10 @@ BANCO_GRAMATICA_AVANZADO = [
 ]
 
 st.title("🇰🇷 Mi Aplicación de Coreano 3A")
-st.caption(f"Vocabulario Pág. 52-55 cargado ({len(BANCO_VOCABULARIO)} elementos) + Gramática")
+st.caption(f"Índice de vocabulario cargado ({len(BANCO_VOCABULARIO)} elementos) + Gramática")
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🎴 Vocabulario (Pág. 52-55)", 
+    "🎴 Vocabulario (Índice)", 
     "✍️ Examen Vocabulario", 
     "📖 Gramática (Libro y Word)", 
     "📝 Examen de Gramática",
@@ -119,7 +121,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # PESTAÑA 1: VOCABULARIO
 # -------------------------------------------------------------
 with tab1:
-    st.header("🎴 Tarjetas de Vocabulario (Páginas 52 a 55)")
+    st.header("🎴 Tarjetas de Vocabulario (Índice - Pág. 52-55)")
     if "flash_idx" not in st.session_state:
         st.session_state.flash_idx = 0
     if "mostrar_trad" not in st.session_state:
@@ -140,7 +142,7 @@ with tab1:
             st.rerun()
             
     if st.session_state.mostrar_trad:
-        st.success(f"### Significado: {card['espanol']}")
+        st.success(f"### Detalle: {card['espanol']}")
 
 # -------------------------------------------------------------
 # PESTAÑA 2: EXAMEN DE VOCABULARIO
@@ -154,7 +156,8 @@ with tab2:
         st.session_state.res_v = False
 
     p_act = BANCO_VOCABULARIO[st.session_state.quiz_idx % len(BANCO_VOCABULARIO)]
-    st.subheader(f"¿Qué significa **{p_act['coreano']}**?")
+    st.subheader(f"¿Qué término o referencia corresponde a esta entrada?")
+    st.markdown(f"**{p_act['coreano']}**")
     
     inc = [v["espanol"] for v in BANCO_VOCABULARIO if v["espanol"] != p_act["espanol"]]
     ops = random.sample(inc, min(3, len(inc))) + [p_act["espanol"]]
