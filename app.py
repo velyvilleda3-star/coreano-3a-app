@@ -7,52 +7,49 @@ from pypdf import PdfReader
 
 st.set_page_config(page_title="Coreano 3A - App de Estudio", page_icon="🇰🇷", layout="centered")
 
-# --- EXTRAER TODO EL VOCABULARIO (Pág. 8 a 24 del PDF) ---
+# --- EXTRAER VOCABULARIO DE LAS PÁGINAS 52 A 55 DEL PDF ---
 @st.cache_data
 def extraer_todo_vocabulario_pdf():
     archivo_pdf = "Libro Coreno 3A.pdf"
     lista_vocab = []
-    
-    # Vocabulario de respaldo estructurado
-    vocab_base = [
-        {"coreano": "청소를 하다", "espanol": "Hacer la limpieza", "leccion": "Pág. 8-24"},
-        {"coreano": "주방", "espanol": "Cocina", "leccion": "Pág. 8-24"},
-        {"coreano": "거실", "espanol": "Sala de estar", "leccion": "Pág. 8-24"},
-        {"coreano": "설거지를 하다", "espanol": "Lavar los platos", "leccion": "Pág. 8-24"},
-        {"coreano": "빨래를 하다", "espanol": "Lavar la ropa", "leccion": "Pág. 8-24"},
-        {"coreano": "수리하다", "espanol": "Reparar / Arreglar", "leccion": "Pág. 8-24"},
-        {"coreano": "새로 사다", "espanol": "Comprar nuevo", "leccion": "Pág. 8-24"},
-        {"coreano": "고장 나다", "espanol": "Descomponerse / Romperse", "leccion": "Pág. 8-24"},
-        {"coreano": "버리다", "espanol": "Tirar / Desechar", "leccion": "Pág. 8-24"},
-        {"coreano": "바꾸다", "espanol": "Cambiar / Cambiarse", "leccion": "Pág. 8-24"}
-    ]
     
     if os.path.exists(archivo_pdf):
         try:
             lector = PdfReader(archivo_pdf)
             total_pags = len(lector.pages)
             
-            # Recorrer páginas 8 a 24
-            fin_pag = min(24, total_pags)
-            for i in range(7, fin_pag):
+            # Páginas 52 a 55 (índices 51 a 54 en Python)
+            inicio_pag = 51
+            fin_pag = min(55, total_pags)
+            
+            for i in range(inicio_pag, fin_pag):
                 texto = lector.pages[i].extract_text()
                 if texto:
                     lineas = texto.split("\n")
                     for linea in lineas:
-                        # Detectar caracteres en coreano (Hangul)
+                        # Filtrar líneas con texto en coreano (Hangul)
                         coreano = "".join(re.findall(r'[\uac00-\ud7a3]+', linea))
                         if len(coreano) > 1:
                             lista_vocab.append({
                                 "coreano": linea.strip(),
-                                "espanol": f"Vocabulario extraído de la Pág. {i+1}",
+                                "espanol": f"Vocabulario Pág. {i+1}",
                                 "leccion": f"Página {i+1}"
                             })
         except Exception:
             pass
 
-    return lista_vocab if len(lista_vocab) > 5 else vocab_base
+    # Vocabulario de respaldo por si el PDF requiere lectura directa de texto específico
+    vocab_respaldo = [
+        {"coreano": "청소를 하다", "espanol": "Hacer la limpieza", "leccion": "Pág. 52-55"},
+        {"coreano": "주방", "espanol": "Cocina", "leccion": "Pág. 52-55"},
+        {"coreano": "거실", "espanol": "Sala de estar", "leccion": "Pág. 52-55"},
+        {"coreano": "설거지를 하다", "espanol": "Lavar los platos", "leccion": "Pág. 52-55"},
+        {"coreano": "빨래를 하다", "espanol": "Lavar la ropa", "leccion": "Pág. 52-55"},
+    ]
 
-# --- CARGAR GRAMÁTICA (Word y Pág. 25+ PDF) ---
+    return lista_vocab if len(lista_vocab) > 3 else vocab_respaldo
+
+# --- CARGAR GRAMÁTICA (Word y Pág. 56+ PDF) ---
 @st.cache_data
 def cargar_gramatica_word_y_pdf():
     gramatica_dict = {}
@@ -68,12 +65,12 @@ def cargar_gramatica_word_y_pdf():
             except Exception:
                 pass
                 
-    # Libro PDF (Pág 25 en adelante)
+    # Libro PDF (A partir de la página 56 para gramática)
     archivo_pdf = "Libro Coreno 3A.pdf"
     if os.path.exists(archivo_pdf):
         try:
             lector = PdfReader(archivo_pdf)
-            for i in range(24, len(lector.pages)):
+            for i in range(55, len(lector.pages)):
                 t = lector.pages[i].extract_text()
                 if t and len(t.strip()) > 80:
                     gramatica_dict[f"Libro PDF - Pág. {i+1}"] = t
@@ -104,24 +101,14 @@ BANCO_GRAMATICA_AVANZADO = [
             "Señalar el tiempo futuro lejano sin excepciones."
         ],
         "correcta": "Presentar un contexto previo o situación antecedente antes de hacer una sugerencia o pregunta."
-    },
-    {
-        "pregunta": "¿Cuándo se utiliza la expresión de suposición subjetiva '-는 것 같다'?",
-        "opciones": [
-            "Cuando se expresa una impresión o parecer personal basado en lo que se observa o experimenta.",
-            "Cuando se quiere dar una orden imperativa de carácter militar.",
-            "Cuando se describe un hecho científico totalmente comprobado.",
-            "Cuando se niega de forma categórica un suceso pasado."
-        ],
-        "correcta": "Cuando se expresa una impresión o parecer personal basado en lo que se observa o experimenta."
     }
 ]
 
 st.title("🇰🇷 Mi Aplicación de Coreano 3A")
-st.caption(f"Vocabulario completo cargado ({len(BANCO_VOCABULARIO)} elementos) + Gramática del libro y notas")
+st.caption(f"Vocabulario Pág. 52-55 cargado ({len(BANCO_VOCABULARIO)} elementos) + Gramática")
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🎴 Vocabulario (Pág. 8-24)", 
+    "🎴 Vocabulario (Pág. 52-55)", 
     "✍️ Examen Vocabulario", 
     "📖 Gramática (Libro y Word)", 
     "📝 Examen de Gramática",
@@ -129,10 +116,10 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 # -------------------------------------------------------------
-# PESTAÑA 1: VOCABULARIO COMPLETO
+# PESTAÑA 1: VOCABULARIO
 # -------------------------------------------------------------
 with tab1:
-    st.header("🎴 Tarjetas de Vocabulario Completo")
+    st.header("🎴 Tarjetas de Vocabulario (Páginas 52 a 55)")
     if "flash_idx" not in st.session_state:
         st.session_state.flash_idx = 0
     if "mostrar_trad" not in st.session_state:
@@ -159,7 +146,7 @@ with tab1:
 # PESTAÑA 2: EXAMEN DE VOCABULARIO
 # -------------------------------------------------------------
 with tab2:
-    st.header("✍️ Examen de Vocabulario Completo")
+    st.header("✍️ Examen de Vocabulario")
     if "quiz_idx" not in st.session_state:
         st.session_state.quiz_idx = 0
         st.session_state.puntuacion_v = 0
@@ -202,7 +189,7 @@ with tab2:
 # PESTAÑA 3: GRAMÁTICA
 # -------------------------------------------------------------
 with tab3:
-    st.header("📖 Repaso de Gramática (Libro y Apuntes)")
+    st.header("📖 Repaso de Gramática (Pág. 56 en adelante y Word)")
     gram_todo = cargar_gramatica_word_y_pdf()
     
     if gram_todo:
